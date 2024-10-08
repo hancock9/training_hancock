@@ -1,0 +1,121 @@
+---
+title: "R Practice: Tidy Data and Joins"
+author: "Joshua Hancock"
+format: html
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(here)
+library(lubridate) # for bonus question
+```
+
+## Read Data Q1
+
+```{r}
+bird_observations <- read_csv(here::here("data/52_pp52_birds_1.csv"))
+sites <- read_csv(here::here("data/52_pp52_sites_1.csv"))
+surveys <- read_csv(here::here("data/52_pp52_surveys_1.csv"))
+taxalist <- read_csv(here::here("data/52_pp52_taxalist_1.csv"))
+
+```
+
+## Explore Data Q2a
+
+```{r}
+colnames(bird_observations)
+
+head(sites)
+
+summary(surveys)
+
+unique(taxalist)
+
+unique(bird_observations$species_id)
+
+```
+
+
+## Subset the Data - bird_observations Q3
+
+```{r}
+birds_subset <- bird_observations %>% 
+  filter(species_id %in% c("BHCO", "RWBL")) %>% 
+  filter(site_id %in% c("LI-W", "NU-C"))
+  
+```
+
+## Merge the Data using `left_join` birds_subset + sites Q4
+
+```{r}
+birds_left <- birds_subset %>% 
+  left_join (y = sites, by = "site_id")
+  
+```
+
+## Merge the Data using `full_join` birds_subset+sites Q5
+
+```{r}
+birds_full <- birds_subset %>% 
+  full_join (y = sites, by = "site_id")
+```
+
+## Merge the Data Q6
+
+```{r}
+birds_inner <- birds_subset %>% 
+  inner_join (y = taxalist, by = "species_id")
+```
+
+## Merge the Data Q6
+
+```{r}
+birds_inner_left <- birds_subset %>% 
+  left_join(y = taxalist, by = "species_id")
+```
+
+## Wrangle bird_observations Q7
+
+```{r}
+bird_observations <- bird_observations %>% 
+  rename(bird_obs_notes = notes)
+```
+
+## Wrangle bird_observations Q7b
+
+```{r}
+bird_obs_subset <- bird_observations %>% 
+  full_join(y = taxalist, by = "species_id") %>% 
+  full_join(y = sites, by = "site_id") %>% 
+  full_join(y = surveys, by = c("site_id", "survey_id")) %>%  
+  select(survey_date, common_name, park_name, bird_count, observer)
+```
+
+## Explore observer data Q8
+```{r}
+unique(bird_obs_subset$observer)
+```
+
+## Mutate observer data Q8
+```{r}
+bird_obs_subset <- bird_obs_subset %>% 
+  mutate(observer = if_else(condition = observer == "Josh Burns", 
+                            true = "J. Burns", 
+                            false = observer))
+
+unique(bird_obs_subset$observer)
+```
+
+## Use Lubridate Bonus
+
+```{r}
+bird_obs_subset <- bird_obs_subset %>% 
+  mutate(survey_month = lubridate::month(survey_date)) %>% 
+  mutate(survey_month = as.factor(survey_month)) %>% 
+  dplyr::relocate(survey_month, .after = survey_date) %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa")) %>% 
+  group_by(park_name, survey_month) %>% 
+  summarize(tot_bird_count_month = n())
+```
+
