@@ -1,0 +1,215 @@
+---
+title: "cleaning and wrangling data"
+author: "Joshua Hancock"
+format: html
+---
+
+## Set up
+
+```{r}
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+## Read Data
+```{r}
+catch_original <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
+```
+
+## Explore Data
+
+```{r}
+colnames(catch_original)
+
+head(catch_original)
+
+summary(catch_original)
+
+unique(catch_original$Region)
+```
+
+## Clean and Reshape
+
+```{r}
+
+```
+
+### Use `select()` by columns
+
+```{r}
+catch_data <- catch_original %>% 
+  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum)
+
+colnames(catch_data)
+```
+
+### Quality Check
+
+```{r}
+glimpse(catch_data)
+
+```
+
+### Replace values in column using `mutate` 
+
+```{r}
+catch_clean <- catch_data %>% 
+  mutate(Chinook = as.numeric(Chinook))
+
+head(catch_clean)
+```
+
+Finding rows with NA values
+
+```{r}
+i <- which(is.na(catch_clean$Chinook))
+
+catch_data[i,]
+```
+
+Fixing the I in Chinook column
+```{r}
+catch_clean <- catch_data %>% 
+  mutate(Chinook = if_else(condition = Chinook == "I",
+                           true = "1",
+                           false = Chinook),
+         Chinook = as.numeric(Chinook))
+
+head(catch_clean)
+```
+
+### Reshape data with `pivot_longer()` and `pivot_wider()`
+```{r}
+catch_long <- catch_clean %>% 
+  pivot_longer(cols = -c(Region, Year),
+               names_to = "species",
+               values_to = "catch")
+
+head(catch_long)
+
+```
+
+Reversing from long to wide
+```{r}
+catch_wide <- catch_long %>% 
+  pivot_wider(names_from = species,
+              values_from = catch)
+
+head(catch_wide)
+```
+
+### Rename column using `rename()` 
+
+```{r}
+catch_long <- catch_long %>% 
+  rename(catch_thousand = catch)
+
+head(catch_long)
+```
+
+### Add a new column using `mutate()`
+
+```{r}
+catch_long <- catch_long %>% 
+  mutate(catch = catch_thousand*1000) %>% 
+  select(-catch_thousand)
+
+head(catch_long)
+```
+
+### Demonstrate Split-Apply-Combine
+
+```{r}
+mean_region <- catch_long %>% 
+  group_by(Region) %>% 
+  summarise(mean_catch = mean(catch))
+
+head(mean_region)
+
+n_region <- catch_long %>% 
+  group_by(Region) %>% 
+  summarise(n = n())
+
+head(n_region)
+```
+
+### Use `filter()` to subset by rows
+
+```{r}
+sse_catch <- catch_long %>% 
+  filter(Region == "SSE")
+
+unique(sse_catch$Region)
+
+head(sse_catch)
+```
+
+### Sort data frame using `arrange()`
+
+
+
+### Split and combine values in columns using `seperate()` and `unite()`
+
+```{r}
+sites_df <- data.frame(site = c("HAW-101",
+                                "HAW-103",
+                                "OAH-320",
+                                "OAH-219",
+                                "MAU-039"))
+
+sites_df %>%
+    separate(site, c("island", "site_number"), "-")
+```
+
+```{r}
+dates_df <- data.frame(
+    year = c("1930",
+             "1930",
+             "1930"),
+    month = c("12",
+              "12",
+              "12"),
+    day = c("14",
+            "15",
+            "16")
+)
+
+dates_df %>%
+    unite(date, year, month, day, sep = "-")
+```
+
+### All together using the pipe
+```{r}
+mean_region <- catch_original %>% 
+  select(-All, -notesRegCode) %>% 
+  mutate(Chinook = if_else(Chinook == "I",
+                           "1",
+                           Chinook)) %>% 
+  mutate(Chinook = as.numeric(Chinook)) %>% 
+  pivot_longer(-c(Region, Year),
+               names_to = "species",
+               values_to = "catch") %>% 
+  mutate(catch = catch*1000) %>% 
+  group_by(Region) %>% 
+  summarise(mean_catch = mean(catch)) %>% 
+  arrange(desc(mean_catch))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
