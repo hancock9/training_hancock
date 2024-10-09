@@ -6,4 +6,14 @@ format: html
 
 These are all the materials from the coreR course (October 2024)
 
+## Course Lessons 
+- [Intro to Literate Analysis](scripts/quick_analysis.html)
+- [Cleaning and Wrangling data](scripts/cleaning_and_wrangling.html)
+- Data Visualization
+- Functions
+
+## Practice Sessions
+- Practice 1
+- Practice 2
+- Practice 3
 
